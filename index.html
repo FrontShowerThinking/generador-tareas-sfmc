@@ -1,0 +1,1041 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Generador de Tareas SFMC</title>
+<style>
+  /* Light-first palette matching the Showerthinking "Vigía de Entregables" reference
+     (cream/lavender surface, teal accent, Fraunces headings), with a dark variant
+     swapped in for viewers on a dark system/explicit toggle. */
+  :root{
+    --bg:#c9cdd8;
+    --surface:#ffffff;
+    --surface-2:#d9d2e9;
+    --border:#e1e4ec;
+    --text:#1a2030;
+    --text-muted:#5c6572;
+    --accent:#2f6f5e;
+    --accent-ink:#ffffff;
+    --accent-soft:#e4f0ec;
+    --danger:#ab3d3d;
+    --danger-soft:#f8e9e9;
+    --role-mop:#a8680a;  --role-mop-bg:#fbf0dd;
+    --role-fe:#6d53e0;   --role-fe-bg:#ece7fe;
+    --role-be:#2a5db0;   --role-be-bg:#e7eefb;
+    --role-cons:#c11f79; --role-cons-bg:#fbe2ef;
+    --shadow:0 1px 2px rgba(20,20,40,.06), 0 10px 28px -14px rgba(20,20,40,.18);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#07080a; --surface:#1b1f27; --surface-2:#362f4a; --border:#2c303a;
+      --text:#e9ebf0; --text-muted:#a2a9b5;
+      --accent:#6fbba3; --accent-ink:#07080a; --accent-soft:#1e2f2a;
+      --danger:#e08080; --danger-soft:#362222;
+      --role-mop:#e0a941; --role-mop-bg:#35291a;
+      --role-fe:#b7a4f0;  --role-fe-bg:#241f3d;
+      --role-be:#7fa8e8;  --role-be-bg:#1c2636;
+      --role-cons:#f4699e; --role-cons-bg:#351827;
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 18px 40px -20px rgba(0,0,0,.75);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#07080a; --surface:#1b1f27; --surface-2:#362f4a; --border:#2c303a;
+    --text:#e9ebf0; --text-muted:#a2a9b5;
+    --accent:#6fbba3; --accent-ink:#07080a; --accent-soft:#1e2f2a;
+    --danger:#e08080; --danger-soft:#362222;
+    --role-mop:#e0a941; --role-mop-bg:#35291a;
+    --role-fe:#b7a4f0;  --role-fe-bg:#241f3d;
+    --role-be:#7fa8e8;  --role-be-bg:#1c2636;
+    --role-cons:#f4699e; --role-cons-bg:#351827;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 18px 40px -20px rgba(0,0,0,.75);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  }
+  h1,h2{font-family:"Fraunces",Georgia,serif;text-wrap:balance;}
+  .eyebrow{font-family:"IBM Plex Sans",system-ui,sans-serif;}
+  code,.mono,input.mono,.preview-text{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
+
+  .brand-bar{
+    max-width:760px;margin:0 auto 22px;border-radius:16px;padding:16px 22px;
+    display:flex;align-items:center;gap:18px;
+    background:linear-gradient(135deg,#3a2454 0%,#1c1128 55%,#0e0815 100%);
+    box-shadow:0 8px 24px -12px rgba(0,0,0,.45);
+  }
+  .brand-bar .logo-box{
+    flex:0 0 auto;width:64px;height:64px;border-radius:10px;overflow:hidden;display:block;
+  }
+  .brand-bar .logo-box img{width:100%;height:100%;display:block;}
+  .brand-bar .logo-box span{
+    font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:700;font-size:9.5px;line-height:1.05;
+    letter-spacing:.01em;text-align:left;word-break:break-word;
+  }
+  .brand-bar .tagline{
+    flex:1 1 auto;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:19px;font-weight:600;
+    color:#f4f0f8;letter-spacing:-.01em;
+  }
+  .brand-bar .tagline .accent{color:#b79ee0;}
+  .brand-bar .tagline .brand-dot{color:#d3e04a;}
+
+  .wrap{max-width:760px;margin:0 auto;padding:36px 20px 72px;display:flex;flex-direction:column;gap:22px;}
+
+  header.top{display:flex;flex-direction:column;gap:12px;}
+  .top-row{display:flex;gap:14px;align-items:flex-start;}
+  .top-titles{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 auto;}
+  .btn.btn-ghost.btn-reset{
+    flex:0 0 auto;white-space:nowrap;border:none;
+    background:#b5bf00;
+    color:#0e0815;
+  }
+  .btn.btn-ghost.btn-reset:not(:disabled):hover{
+    filter:brightness(1.1);
+    background:#b5bf00;
+  }
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+  h1{font-size:27px;font-weight:600;margin:0;line-height:1.2;}
+  .subtitle{color:var(--text-muted);font-size:14.5px;line-height:1.5;margin:0;max-width:56ch;}
+  .format-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--text-muted);
+    width:fit-content;
+  }
+  .format-chip b{color:var(--text);font-weight:600;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px 22px 24px;display:flex;flex-direction:column;gap:20px;
+  }
+
+  .field{display:flex;flex-direction:column;gap:8px;}
+  .field-row{display:flex;align-items:baseline;gap:10px;}
+  .step-badge{
+    width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;
+  }
+  label{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .hint{font-size:12.5px;color:var(--text-muted);margin:0;padding-left:32px;}
+
+  .ctrl{
+    width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--border);
+    background:var(--surface-2);color:var(--text);font-size:14.5px;font-family:inherit;
+    outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  .ctrl:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  select.ctrl{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 20px) center, calc(100% - 15px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:36px;}
+  .indent{padding-left:32px;display:flex;flex-direction:column;gap:10px;}
+  .subfield{display:flex;flex-direction:column;gap:6px;}
+  .subfield small{font-size:12px;color:var(--text-muted);font-weight:600;}
+
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .row > *{flex:1 1 220px;}
+
+  .preview{
+    padding-left:32px;display:flex;flex-direction:column;gap:8px;
+  }
+  .preview-box{
+    background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;
+    padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:52px;
+  }
+  .preview-text{font-size:14.5px;word-break:break-word;flex:1 1 auto;}
+  .preview-text .deliverable{color:var(--accent);font-style:italic;font-weight:500;}
+  .preview-text .sep,.preview-text .task{color:var(--text);font-weight:700;}
+  .preview-text.empty{color:var(--text-muted);font-style:italic;font-weight:400;font-family:"IBM Plex Sans",sans-serif;}
+
+  button{font-family:inherit;cursor:pointer;border:none;}
+  .btn{
+    padding:11px 18px;border-radius:10px;font-size:14px;font-weight:600;
+    display:inline-flex;align-items:center;gap:7px;transition:filter .15s, background .15s;
+  }
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);}
+  .btn-primary:not(:disabled):hover{filter:brightness(1.06);}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-ghost:not(:disabled):hover{background:var(--surface-2);}
+  .btn-icon{padding:8px 12px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;}
+  .btn-icon:hover{color:var(--text);background:var(--border);}
+  .icon-sq{
+    width:32px;height:32px;padding:0;border-radius:9px;background:var(--surface-2);border:1px solid var(--border);
+    color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;flex:none;
+  }
+  .icon-sq:hover{color:var(--text);background:var(--border);}
+  .icon-sq svg{width:15px;height:15px;display:block;}
+  .btn-danger-text{background:transparent;color:var(--danger);border:1px solid transparent;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;}
+  .btn-danger-text:hover{background:var(--danger-soft);}
+
+  .actions{display:flex;gap:10px;align-items:center;padding-left:32px;flex-wrap:wrap;}
+
+  .list-card{display:flex;flex-direction:column;gap:14px;}
+  .list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .list-head h2{font-size:17px;margin:0;font-weight:600;}
+  .list-head .count{color:var(--text-muted);font-weight:500;font-size:13.5px;}
+  .list-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  ul.gen-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .gen-item{
+    border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface-2);
+  }
+  .gen-item.cat-mop{border-color:var(--role-mop);background:var(--role-mop-bg);}
+  .gen-item.cat-fe{border-color:var(--role-fe);background:var(--role-fe-bg);}
+  .gen-item.cat-be{border-color:var(--role-be);background:var(--role-be-bg);}
+  .gen-item.cat-cons{border-color:var(--role-cons);background:var(--role-cons-bg);}
+  .gen-item.cat-design{border-color:var(--accent);background:var(--accent-soft);}
+  .gen-item.is-example{border-style:dashed;opacity:.72;}
+  .role-chip{
+    font-size:11px;font-weight:700;letter-spacing:.02em;padding:4px 9px;border-radius:999px;flex:none;
+    white-space:nowrap;background:color-mix(in srgb, currentColor 16%, transparent);
+  }
+  .role-chip.mop{color:var(--role-mop);}
+  .role-chip.fe{color:var(--role-fe);}
+  .role-chip.be{color:var(--role-be);}
+  .role-chip.cons{color:var(--role-cons);}
+  .design-chip{
+    font-size:11px;font-weight:700;letter-spacing:.02em;padding:4px 9px;border-radius:999px;flex:none;
+    white-space:nowrap;color:var(--accent);background:color-mix(in srgb, currentColor 16%, transparent);
+  }
+  .gen-name{flex:1 1 240px;font-size:14px;word-break:break-word;}
+  .gen-name .deliverable{color:var(--accent);font-style:italic;font-weight:500;}
+  .gen-name .sep,.gen-name .task{color:var(--text);font-weight:700;}
+  .example-tag{font-size:10.5px;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:2px 6px;flex:none;}
+  .gen-actions{display:flex;gap:6px;flex:none;}
+
+  .empty-state{
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+    padding:28px 16px;color:var(--text-muted);font-size:13.5px;
+  }
+
+  footer.note{padding-left:2px;color:var(--text-muted);font-size:12px;line-height:1.6;}
+
+  @media (max-width:480px){
+    .wrap{padding:24px 16px 56px;}
+    h1{font-size:22px;}
+    .hint,.preview,.actions{padding-left:0;}
+    .field-row{align-items:flex-start;}
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<div class="brand-bar">
+  <div class="logo-box"><img src="data:image/png;base64,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" alt="ShowerThinking.com" width="64" height="64"></div>
+  <div class="tagline">Innovation <span class="accent">by</span> <span class="accent">difference</span><span class="brand-dot">.</span></div>
+</div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="top-row">
+      <div class="top-titles">
+        <h1>Generador de nombres de tarea</h1>
+        <p class="subtitle">Elige el entregable, a quién va dirigida la tarea y el tipo de tarea. La herramienta compone el nombre siguiendo la convención del equipo.</p>
+      </div>
+      <button type="button" class="btn btn-ghost btn-reset" id="resetBtn" title="Limpia el formulario para empezar con otro entregable">Reiniciar</button>
+    </div>
+  </header>
+
+  <form class="card" id="genForm">
+
+    <div class="field">
+      <div class="field-row">
+        <span class="step-badge">1</span>
+        <label for="deliverable">Nombre de campaña</label>
+      </div>
+      <div class="indent">
+        <input class="ctrl" id="deliverable" type="text" placeholder="p. ej. Cliente Acme – Newsletter Verano 2026" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="step-badge">2</span>
+        <label for="hasDesign" style="cursor:pointer;">
+          <input type="checkbox" id="hasDesign" style="width:16px;height:16px;accent-color:var(--accent);margin:0;">
+          ¿La tarea lleva diseño?
+        </label>
+      </div>
+      <p class="hint">Si se marca, se añaden opciones de propuesta de diseño (Proposal Design) donde existan.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="step-badge">3</span>
+        <label for="role">¿Para quién es la tarea?</label>
+      </div>
+      <div class="indent">
+        <select class="ctrl" id="role"></select>
+      </div>
+    </div>
+
+    <div class="field" id="categoryField" hidden>
+      <div class="field-row">
+        <span class="step-badge" id="categoryStepBadge">4</span>
+        <label for="categorySelect">Categoría</label>
+      </div>
+      <div class="indent">
+        <select class="ctrl" id="categorySelect">
+          <option value="Email">Email</option>
+          <option value="LP &amp; Survey">LP &amp; Survey</option>
+          <option value="Paid Media">Paid Media</option>
+          <option value="Creatividad">Creatividad</option>
+        </select>
+      </div>
+      <p class="hint">Solo para Front End. Determina qué opciones aparecen a continuación.</p>
+    </div>
+
+    <div class="field" id="entregableField" hidden>
+      <div class="field-row">
+        <span class="step-badge" id="entregableStepBadge">5</span>
+        <label for="entregableSelect">Tipo de tarea</label>
+      </div>
+      <div class="indent">
+        <select class="ctrl" id="entregableSelect"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <span class="step-badge" id="taskTypeStepBadge">4</span>
+        <label for="taskType" id="taskTypeFieldLabel">Tipo de tarea</label>
+      </div>
+      <div class="indent">
+        <div class="row" style="align-items:flex-end;">
+          <div class="subfield" style="flex:1 1 260px;">
+            <small>Tarea</small>
+            <select class="ctrl" id="taskType"></select>
+          </div>
+
+          <div class="subfield" id="countWrap" hidden style="flex:1 1 170px;">
+            <small id="countLabel">Número</small>
+            <input class="ctrl" id="countInput" type="number" min="1" step="1" value="1" inputmode="numeric">
+          </div>
+
+          <div class="subfield" id="tierWrap" hidden style="flex:1 1 190px;">
+            <small id="tierLabel">Opción</small>
+            <select class="ctrl" id="tierSelect"></select>
+          </div>
+
+          <div class="subfield" id="assetWrap" hidden style="flex:1 1 220px;">
+            <small id="assetLabel">Asset de la campaña</small>
+            <input class="ctrl" id="assetInput" type="text" placeholder="p. ej. Email 2 - Carrito abandonado" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="subfield">
+          <small>Texto de la tarea (editable)</small>
+          <input class="ctrl mono" id="taskText" type="text" placeholder="Selecciona una opción o escribe texto libre">
+        </div>
+        <p class="hint" style="padding-left:0">Puedes modificar este texto libremente después de seleccionar una opción, o elegir «Personalizado» para escribirlo desde cero.</p>
+      </div>
+    </div>
+
+    <div class="preview">
+      <label style="padding-left:0">Nombre final de la tarea</label>
+      <div class="preview-box">
+        <span class="preview-text empty" id="previewText">Rellena los campos para ver el nombre de la tarea</span>
+        <button type="button" class="btn-icon" id="copyPreviewBtn" title="Copiar nombre">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span id="copyPreviewLabel">Copiar</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" id="addBtn">Añadir a la lista</button>
+    </div>
+  </form>
+
+  <section class="card list-card">
+    <div class="list-head">
+      <h2>Tareas generadas <span class="count" id="listCount">(0)</span></h2>
+      <div class="list-actions">
+        <button type="button" class="btn btn-ghost" id="copyAllBtn">Copiar todo</button>
+        <button type="button" class="btn-danger-text" id="clearBtn">Vaciar lista</button>
+      </div>
+    </div>
+
+    <ul class="gen-list" id="genList"></ul>
+    <div class="empty-state" id="emptyState" hidden>Aún no has generado ninguna tarea.<br>Rellena el formulario de arriba y pulsa «Añadir a la lista».</div>
+  </section>
+
+  <footer class="note">Los nombres generados solo se guardan en este navegador. Comparte el enlace de esta herramienta con quien lo necesite — se actualizará si vuelves a publicarla.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Front End: Entregables por Categoría ----
+  // Cada tarea: { label, type: simple|count|count-capped|tier|asset, template, design?:bool, ... }
+  // "template" usa {n}/{unit} (count), {tier} (tier) o {asset} (asset).
+  var FE_EMAIL = [
+    { name: "Email / Campaña", tasks: [
+      { label: "Email Layout (x_ email)", type: "count", unitSingular: "email", unitPlural: "emails",
+        template: "Email Layout (x{n} {unit})", countLabel: "Número de emails" },
+      { label: "Proposal Design (x_ email)", type: "count", unitSingular: "email", unitPlural: "emails",
+        template: "Proposal Design (x{n} {unit})", countLabel: "Número de emails", design: true }
+    ]},
+    { name: "Remarketing", tasks: [
+      { label: "Remarketing (x_ remarketing)", type: "count", unitSingular: "remarketing", unitPlural: "remarketings",
+        template: "Remarketing (x{n} {unit})", countLabel: "Número de remarketings" }
+    ]}
+  ];
+
+  var FE_LP_SURVEY = [
+    { name: "Star Rating Survey", tasks: [
+      { label: "Star Rating + TY/KO page", type: "simple" },
+      { label: "Proposal Design (Star Rating Survey)", type: "simple", design: true }
+    ]},
+    { name: "Survey Básica", tasks: [
+      { label: "Survey Básica (Landing + TY/KO page)", type: "simple" },
+      { label: "Proposal Design (Survey Básica / x_)", type: "count",
+        template: "Proposal Design (Survey Básica / x{n})", countLabel: "Número de páginas", design: true }
+    ]},
+    { name: "Survey Compleja", tasks: [
+      { label: "Survey Compleja (Landing + TY/KO page)", type: "simple" },
+      { label: "Proposal Design (Survey Compleja / x_)", type: "count",
+        template: "Proposal Design (Survey Compleja / x{n})", countLabel: "Número de páginas", design: true }
+    ]},
+    { name: "LP Simple", tasks: [
+      { label: "LP Simple (x_)", type: "count", countLabel: "Número de páginas",
+        template: "LP Simple (x{n})" },
+      { label: "Proposal Design (LP Simple / x_)", type: "count",
+        template: "Proposal Design (LP Simple / x{n})", countLabel: "Número de páginas", design: true }
+    ]},
+    { name: "LP Avanzada", tasks: [
+      { label: "LP Avanzada (x_)", type: "count", countLabel: "Número de páginas",
+        template: "LP Avanzada (x{n})" },
+      { label: "Proposal Design (LP Avanzada / x_)", type: "count",
+        template: "Proposal Design (LP Avanzada / x{n})", countLabel: "Número de páginas", design: true }
+    ]},
+    { name: "Microsite", tasks: [
+      { label: "Microsite (x_)", type: "count", countLabel: "Número de páginas", min: 4,
+        template: "Microsite (x{n})" },
+      { label: "Proposal Design (Microsite / x_)", type: "count", countLabel: "Número de páginas",
+        template: "Proposal Design (Microsite / x{n})", design: true }
+    ]}
+  ];
+
+  var TIER_PIEZAS = ["hasta 5 piezas", "6–10 piezas"];
+  var TIER_SLIDES = ["10 slides", "20 slides"];
+
+  var FE_PAID_MEDIA = [
+    { name: "Post Instagram", tasks: [
+      { label: "Design: Post IG (x_)", type: "count", template: "Design: Post IG (x{n})", countLabel: "Número de posts" },
+      { label: "Proposal Design: Post IG (x_)", type: "count", template: "Proposal Design: Post IG (x{n})", countLabel: "Número de posts", design: true }
+    ]},
+    { name: "Stories Instagram", tasks: [
+      { label: "Design: Story IG (x_)", type: "count", template: "Design: Story IG (x{n})", countLabel: "Número de stories" },
+      { label: "Proposal Design: Story IG (x_)", type: "count", template: "Proposal Design: Story IG (x{n})", countLabel: "Número de stories", design: true }
+    ]},
+    { name: "Post LinkedIn", tasks: [
+      { label: "Design: Post LinkedIn (x_)", type: "count", template: "Design: Post LinkedIn (x{n})", countLabel: "Número de posts" },
+      { label: "Proposal Design: Post LinkedIn (x_)", type: "count", template: "Proposal Design: Post LinkedIn (x{n})", countLabel: "Número de posts", design: true }
+    ]},
+    { name: "Carrusel Instagram", tasks: [
+      { label: "Design: Carrusel IG", type: "tier", options: TIER_PIEZAS, tierLabel: "Nº de piezas", template: "Design: Carrusel IG ({tier})" },
+      { label: "Proposal Design: Carrusel IG", type: "tier", options: TIER_PIEZAS, tierLabel: "Nº de piezas", template: "Proposal Design: Carrusel IG ({tier})", design: true }
+    ]},
+    { name: "Carrusel LinkedIn", tasks: [
+      { label: "Design: Carrusel LinkedIn", type: "tier", options: TIER_PIEZAS, tierLabel: "Nº de piezas", template: "Design: Carrusel LinkedIn ({tier})" },
+      { label: "Proposal Design: Carrusel LinkedIn", type: "tier", options: TIER_PIEZAS, tierLabel: "Nº de piezas", template: "Proposal Design: Carrusel LinkedIn ({tier})", design: true }
+    ]},
+    { name: "Banner Paid", tasks: [
+      { label: "Design: Banner (x_ tamaños)", type: "count-capped", cap: 6, countLabel: "Número de tamaños",
+        template: "Design: Banner (x{n})", capTemplate: "Design: Banner (+7 tamaños)" },
+      { label: "Proposal Design: Banner (x_ tamaños)", type: "count-capped", cap: 6, countLabel: "Número de tamaños",
+        template: "Proposal Design: Banner (x{n})", capTemplate: "Proposal Design: Banner (+7 tamaños)", design: true }
+    ]},
+    { name: "PowerPoint", tasks: [
+      { label: "Design: PowerPoint", type: "tier", options: TIER_SLIDES, tierLabel: "Nº de slides", template: "Design: PowerPoint ({tier})" },
+      { label: "Proposal Design: PowerPoint", type: "tier", options: TIER_SLIDES, tierLabel: "Nº de slides", template: "Proposal Design: PowerPoint ({tier})", design: true }
+    ]}
+  ];
+
+  // Creatividad: categoría propia de Front End, sin paso intermedio de "Tipo de tarea"
+  // (va directa de Categoría al paso "Tarea" con estas 8 opciones + sus Proposal Design).
+  var FE_CREATIVIDAD = [
+    { label: "Design: Banner (x_)", type: "count", template: "Design: Banner (x{n})", countLabel: "Número de banners" },
+    { label: "Design: Infografía (x_)", type: "count", template: "Design: Infografía (x{n})", countLabel: "Número de infografías" },
+    { label: "Design: Animación / GIF", type: "simple", template: "Design: Animación / GIF" },
+    { label: "Design: PowerPoint (x_ slides)", type: "count", unitSingular: "slide", unitPlural: "slides",
+      template: "Design: PowerPoint (x{n} {unit})", countLabel: "Número de slides" },
+    { label: "Design: Ilustración", type: "simple", template: "Design: Ilustración" },
+    { label: "Design: Otro formato", type: "asset", template: "Design: {asset}",
+      assetLabel: "Nombre del formato", assetPlaceholder: "p. ej. Infografía animada" },
+    { label: "Proposal Design: Banner (x_)", type: "count", template: "Proposal Design: Banner (x{n})", countLabel: "Número de banners", design: true },
+    { label: "Proposal Design: Infografía (x_)", type: "count", template: "Proposal Design: Infografía (x{n})", countLabel: "Número de infografías", design: true },
+    { label: "Proposal Design: Animación / GIF", type: "simple", template: "Proposal Design: Animación / GIF", design: true },
+    { label: "Proposal Design: PowerPoint (x_ slides)", type: "count", unitSingular: "slide", unitPlural: "slides",
+      template: "Proposal Design: PowerPoint (x{n} {unit})", countLabel: "Número de slides", design: true },
+    { label: "Proposal Design: Ilustración", type: "simple", template: "Proposal Design: Ilustración", design: true },
+    { label: "Proposal Design: Otro formato", type: "asset", template: "Proposal Design: {asset}",
+      assetLabel: "Nombre del formato", assetPlaceholder: "p. ej. Infografía animada", design: true }
+  ];
+
+  var ROLES = [
+    { name: "MOP's", slug: "mop", tasks: [
+      { label: "Campaign pre-kickoff briefing", type: "simple" },
+      { label: "Campaign Management", type: "simple" },
+      { label: "Campaign FU (one per asset during the campaign)", type: "asset", template: "Campaign FU ({asset})",
+        assetLabel: "Asset de la campaña", assetPlaceholder: "p. ej. Email 2 - Carrito abandonado" },
+      { label: "Campaign Report", type: "simple" },
+      { label: "Campaign Management Proposal", type: "simple", design: true }
+    ]},
+    { name: "Front End", slug: "fe", categories: {
+      "Creatividad": { flat: true, tasks: FE_CREATIVIDAD },
+      "Email": { flat: false, entregables: FE_EMAIL },
+      "LP & Survey": { flat: false, entregables: FE_LP_SURVEY },
+      "Paid Media": { flat: false, entregables: FE_PAID_MEDIA }
+    }},
+    { name: "Back End", slug: "be", tasks: [
+      { label: "Landing page", type: "simple" },
+      { label: "Start rating", type: "simple" },
+      { label: "Ampscript email", type: "simple" },
+      { label: "iFrame", type: "simple" },
+      { label: "Página de registro", type: "simple" },
+      { label: "Configuración API", type: "simple" },
+      { label: "Documentación", type: "simple" },
+      { label: "Página registro GTW", type: "simple" },
+      { label: "Revisión", type: "simple" },
+      { label: "Integración", type: "simple" },
+      { label: "Survey", type: "simple" },
+      { label: "Quizz", type: "simple" }
+    ]},
+    { name: "Consultoría", slug: "cons", tasks: [
+      { label: "Campaign setup + UAT", type: "simple" },
+      { label: "QA", type: "simple" },
+      { label: "Doble UAT", type: "simple" },
+      { label: "Audiencia", type: "simple" },
+      { label: "Backend form", type: "simple" },
+      { label: "Follow Up", type: "simple" },
+      { label: "Configuración AE", type: "simple" },
+      { label: "Extracción de datos", type: "simple" }
+    ]}
+  ];
+  var CUSTOM_VALUE = "__custom__";
+  var STORAGE_KEY = "smc-task-namer-list-v1";
+  var SEEDED_KEY = "smc-task-namer-seeded-v1";
+
+  var els = {
+    deliverable: document.getElementById("deliverable"),
+    hasDesign: document.getElementById("hasDesign"),
+    role: document.getElementById("role"),
+    taskType: document.getElementById("taskType"),
+    countWrap: document.getElementById("countWrap"),
+    countLabel: document.getElementById("countLabel"),
+    countInput: document.getElementById("countInput"),
+    tierWrap: document.getElementById("tierWrap"),
+    tierLabel: document.getElementById("tierLabel"),
+    tierSelect: document.getElementById("tierSelect"),
+    assetWrap: document.getElementById("assetWrap"),
+    assetLabel: document.getElementById("assetLabel"),
+    assetInput: document.getElementById("assetInput"),
+    categoryField: document.getElementById("categoryField"),
+    categoryStepBadge: document.getElementById("categoryStepBadge"),
+    categorySelect: document.getElementById("categorySelect"),
+    entregableField: document.getElementById("entregableField"),
+    entregableStepBadge: document.getElementById("entregableStepBadge"),
+    entregableSelect: document.getElementById("entregableSelect"),
+    taskTypeStepBadge: document.getElementById("taskTypeStepBadge"),
+    taskTypeFieldLabel: document.getElementById("taskTypeFieldLabel"),
+    taskText: document.getElementById("taskText"),
+    previewText: document.getElementById("previewText"),
+    copyPreviewBtn: document.getElementById("copyPreviewBtn"),
+    addBtn: document.getElementById("addBtn"),
+    form: document.getElementById("genForm"),
+    genList: document.getElementById("genList"),
+    emptyState: document.getElementById("emptyState"),
+    listCount: document.getElementById("listCount"),
+    copyAllBtn: document.getElementById("copyAllBtn"),
+    clearBtn: document.getElementById("clearBtn"),
+    resetBtn: document.getElementById("resetBtn")
+  };
+
+  var state = { list: [] };
+  var visibleTasks = [];
+
+  function roleBySlug(slug){
+    for (var i=0;i<ROLES.length;i++){ if (ROLES[i].slug === slug) return ROLES[i]; }
+    return ROLES[0];
+  }
+  function currentRole(){ return roleBySlug(els.role.value); }
+
+  function currentCategoryDef(){
+    var role = currentRole();
+    if (role.slug !== "fe" || !role.categories) return null;
+    return role.categories[els.categorySelect.value] || null;
+  }
+  // Lista de "Tipo de tarea" (entregables) de la categoría actual. Las categorías
+  // "planas" (p.ej. Creatividad) no tienen este nivel intermedio y devuelven [].
+  function currentCategoryEntregables(){
+    var catDef = currentCategoryDef();
+    if (!catDef || catDef.flat) return [];
+    return catDef.entregables || [];
+  }
+  function currentEntregable(){
+    var list = currentCategoryEntregables();
+    var name = els.entregableSelect.value;
+    for (var i=0;i<list.length;i++){ if (list[i].name === name) return list[i]; }
+    return null;
+  }
+  function currentTaskSource(){
+    if (!els.role.value) return [];
+    var role = currentRole();
+    if (role.slug === "fe"){
+      var catDef = currentCategoryDef();
+      if (!catDef) return [];
+      if (catDef.flat) return catDef.tasks || [];
+      var ent = currentEntregable();
+      return ent ? ent.tasks : [];
+    }
+    return role.tasks || [];
+  }
+  function currentTask(){
+    var v = els.taskType.value;
+    if (v === CUSTOM_VALUE || v === "") return null;
+    var idx = parseInt(v, 10);
+    return visibleTasks[idx] || null;
+  }
+
+  function populateRoleSelect(){
+    els.role.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = ""; placeholder.textContent = "— Selecciona equipo —";
+    placeholder.disabled = true; placeholder.selected = true;
+    els.role.appendChild(placeholder);
+    ROLES.forEach(function(r){
+      var opt = document.createElement("option");
+      opt.value = r.slug;
+      opt.textContent = r.name;
+      els.role.appendChild(opt);
+    });
+  }
+
+  // Muestra/oculta Categoría + Tipo de tarea (solo Front End) y renumera los pasos
+  // siguientes para que la secuencia visible siga siendo correlativa. Las categorías
+  // "planas" (p.ej. Creatividad) no tienen paso "Tipo de tarea": se salta directo a "Tarea".
+  function updateFrontEndFieldsVisibility(){
+    if (!els.role.value){
+      els.categoryField.hidden = true;
+      els.entregableField.hidden = true;
+      els.taskTypeStepBadge.textContent = "4";
+      els.taskTypeFieldLabel.textContent = "Tipo de tarea";
+      return;
+    }
+    var isFE = currentRole().slug === "fe";
+    els.categoryField.hidden = !isFE;
+    var catDef = isFE ? currentCategoryDef() : null;
+    var showEntregable = isFE && !(catDef && catDef.flat);
+    els.entregableField.hidden = !showEntregable;
+    els.categoryStepBadge.textContent = "4";
+    els.entregableStepBadge.textContent = "5";
+    els.taskTypeStepBadge.textContent = isFE ? (showEntregable ? "6" : "5") : "4";
+    els.taskTypeFieldLabel.textContent = isFE ? "Tarea" : "Tipo de tarea";
+  }
+
+  function sortedByLabel(arr, getLabel){
+    return arr.slice().sort(function(a, b){
+      return getLabel(a).localeCompare(getLabel(b), "es", { sensitivity: "base" });
+    });
+  }
+
+  function populateEntregableSelect(){
+    els.entregableSelect.innerHTML = "";
+    var sorted = sortedByLabel(currentCategoryEntregables(), function(ent){ return ent.name; });
+    sorted.forEach(function(ent){
+      var opt = document.createElement("option");
+      opt.value = ent.name;
+      opt.textContent = ent.name;
+      els.entregableSelect.appendChild(opt);
+    });
+  }
+
+  function populateTaskSelect(){
+    els.taskType.innerHTML = "";
+
+    var placeholder = document.createElement("option");
+    placeholder.value = ""; placeholder.textContent = "— Selecciona una tarea —";
+    placeholder.disabled = true; placeholder.selected = true;
+    els.taskType.appendChild(placeholder);
+
+    var customOpt = document.createElement("option");
+    customOpt.value = CUSTOM_VALUE; customOpt.textContent = "Personalizado (texto libre)";
+    els.taskType.appendChild(customOpt);
+
+    var filtered = currentTaskSource().filter(function(t){
+      return els.hasDesign.checked ? !!t.design : !t.design;
+    });
+    visibleTasks = sortedByLabel(filtered, function(t){ return t.label; });
+    visibleTasks.forEach(function(t, i){
+      var opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = t.label + (t.design ? " · Diseño" : "");
+      els.taskType.appendChild(opt);
+    });
+
+    els.taskText.value = "";
+    hideExtraFields();
+    updatePreview();
+  }
+
+  function hideExtraFields(){
+    els.countWrap.hidden = true;
+    els.tierWrap.hidden = true;
+    els.assetWrap.hidden = true;
+  }
+
+  function clampCount(v, min){
+    var m = min || 1;
+    var n = parseInt(v, 10);
+    if (!n || n < m) n = m;
+    return n;
+  }
+
+  function buildFromTemplate(task){
+    if (task.type === "simple") return task.template || task.label;
+
+    if (task.type === "count"){
+      var n = clampCount(els.countInput.value, task.min);
+      var unit = task.unitSingular ? (n === 1 ? task.unitSingular : (task.unitPlural || task.unitSingular + "s")) : "";
+      return task.template.replace("{n}", String(n)).replace("{unit}", unit);
+    }
+
+    if (task.type === "count-capped"){
+      var n2 = clampCount(els.countInput.value, task.min);
+      if (n2 > task.cap) return task.capTemplate;
+      return task.template.replace("{n}", String(n2));
+    }
+
+    if (task.type === "tier"){
+      var tv = els.tierSelect.value || (task.options && task.options[0]) || "";
+      return task.template.replace("{tier}", tv);
+    }
+
+    if (task.type === "asset"){
+      var a = els.assetInput.value.trim();
+      return task.template.replace("{asset}", a || "…");
+    }
+
+    return task.label;
+  }
+
+  function populateTierSelect(options){
+    els.tierSelect.innerHTML = "";
+    (options || []).forEach(function(opt){
+      var o = document.createElement("option");
+      o.value = opt; o.textContent = opt;
+      els.tierSelect.appendChild(o);
+    });
+  }
+
+  function onTaskTypeChange(){
+    hideExtraFields();
+    var task = currentTask();
+    if (!task){
+      els.taskText.value = "";
+      els.taskText.focus();
+      updatePreview();
+      return;
+    }
+    if (task.type === "count" || task.type === "count-capped"){
+      els.countWrap.hidden = false;
+      els.countLabel.textContent = task.countLabel || "Número";
+      var minVal = task.min || 1;
+      els.countInput.min = String(minVal);
+      var curVal = parseInt(els.countInput.value, 10);
+      if (!curVal || curVal < minVal) els.countInput.value = String(minVal);
+    } else if (task.type === "tier"){
+      els.tierWrap.hidden = false;
+      els.tierLabel.textContent = task.tierLabel || "Opción";
+      populateTierSelect(task.options);
+    } else if (task.type === "asset"){
+      els.assetWrap.hidden = false;
+      els.assetLabel.textContent = task.assetLabel || "Asset de la campaña";
+      els.assetInput.placeholder = task.assetPlaceholder || "";
+      els.assetInput.value = "";
+    }
+    els.taskText.value = buildFromTemplate(task);
+    updatePreview();
+  }
+
+  function onExtraFieldChange(){
+    var task = currentTask();
+    if (task) els.taskText.value = buildFromTemplate(task);
+    updatePreview();
+  }
+
+  function updatePreview(){
+    var deliverable = els.deliverable.value.trim();
+    var taskText = els.taskText.value.trim();
+    var valid = deliverable.length > 0 && taskText.length > 0 && !!els.role.value;
+
+    if (!valid){
+      els.previewText.textContent = "Rellena los campos para ver el nombre de la tarea";
+      els.previewText.classList.add("empty");
+    } else {
+      els.previewText.innerHTML = "";
+      els.previewText.classList.remove("empty");
+      var d = document.createElement("span"); d.className = "deliverable"; d.textContent = deliverable;
+      var sep = document.createElement("span"); sep.className = "sep"; sep.textContent = ": ";
+      var t = document.createElement("span"); t.className = "task"; t.textContent = taskText;
+      els.previewText.appendChild(d);
+      els.previewText.appendChild(sep);
+      els.previewText.appendChild(t);
+    }
+    els.addBtn.disabled = !valid;
+    els.copyPreviewBtn.disabled = !valid;
+  }
+
+  function fullName(){
+    return els.deliverable.value.trim() + ": " + els.taskText.value.trim();
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw){ state.list = JSON.parse(raw) || []; return; }
+    }catch(e){}
+    state.list = [];
+    seedExamplesIfFirstVisit();
+  }
+
+  function seedExamplesIfFirstVisit(){
+    try{
+      if (localStorage.getItem(SEEDED_KEY)) return;
+    }catch(e){}
+    state.list = [
+      { id: "ex1", roleName: "Front End", roleSlug: "fe", deliverable: "Cliente Acme – Newsletter Verano 2026", taskText: "Email Layout (x4 emails)", example: true },
+      { id: "ex2", roleName: "MOP's", roleSlug: "mop", deliverable: "Cliente Acme – Newsletter Verano 2026", taskText: "Campaign Management", example: true }
+    ];
+    persist();
+    try{ localStorage.setItem(SEEDED_KEY, "1"); }catch(e){}
+  }
+
+  function persist(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.list)); }catch(e){}
+  }
+
+  function renderList(){
+    els.genList.innerHTML = "";
+    var real = state.list;
+    els.listCount.textContent = "(" + real.filter(function(x){return !x.example;}).length + ")";
+    els.emptyState.hidden = real.length > 0;
+
+    var COPY_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    var TRASH_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+
+    real.forEach(function(entry){
+      var catClass = entry.design ? "cat-design" : "cat-" + entry.roleSlug;
+      var li = document.createElement("li");
+      li.className = "gen-item " + catClass + (entry.example ? " is-example" : "");
+
+      var chip = document.createElement("span");
+      chip.className = "role-chip " + entry.roleSlug;
+      chip.textContent = entry.roleName;
+      li.appendChild(chip);
+
+      if (entry.design){
+        var dchip = document.createElement("span");
+        dchip.className = "design-chip";
+        dchip.textContent = "✏️ Diseño";
+        li.appendChild(dchip);
+      }
+
+      var name = document.createElement("span");
+      name.className = "gen-name mono";
+      var d = document.createElement("span"); d.className = "deliverable"; d.textContent = entry.deliverable;
+      var sep = document.createElement("span"); sep.className = "sep"; sep.textContent = ": ";
+      var t = document.createElement("span"); t.className = "task"; t.textContent = entry.taskText;
+      name.appendChild(d); name.appendChild(sep); name.appendChild(t);
+      li.appendChild(name);
+
+      if (entry.example){
+        var tag = document.createElement("span");
+        tag.className = "example-tag";
+        tag.textContent = "Ejemplo";
+        li.appendChild(tag);
+      }
+
+      var actions = document.createElement("span");
+      actions.className = "gen-actions";
+
+      var copyBtn = document.createElement("button");
+      copyBtn.type = "button"; copyBtn.className = "icon-sq"; copyBtn.title = "Copiar"; copyBtn.innerHTML = COPY_ICON;
+      copyBtn.addEventListener("click", function(){
+        copyText(entry.deliverable + ": " + entry.taskText, function(ok){
+          copyBtn.innerHTML = ok ? CHECK_ICON : COPY_ICON;
+          setTimeout(function(){ copyBtn.innerHTML = COPY_ICON; }, 1300);
+        });
+      });
+      actions.appendChild(copyBtn);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button"; delBtn.className = "icon-sq"; delBtn.title = "Eliminar"; delBtn.innerHTML = TRASH_ICON;
+      delBtn.addEventListener("click", function(){
+        state.list = state.list.filter(function(x){ return x.id !== entry.id; });
+        persist(); renderList();
+      });
+      actions.appendChild(delBtn);
+
+      li.appendChild(actions);
+      els.genList.appendChild(li);
+    });
+  }
+
+  function copyText(text, onDone){
+    function flash(ok){ if (onDone) onDone(!!ok); }
+    try{
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ flash(true); }).catch(function(){ fallbackCopy(text, flash); });
+      } else {
+        fallbackCopy(text, flash);
+      }
+    }catch(e){ fallbackCopy(text, flash); }
+  }
+
+  function fallbackCopy(text, flash){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      flash(!!ok);
+    }catch(e){ flash(false); }
+  }
+
+  function addEntry(){
+    var task = currentTask();
+    var role = currentRole();
+    var deliverable = els.deliverable.value.trim();
+    var taskText = els.taskText.value.trim();
+    if (!deliverable || !taskText) return;
+
+    // Drop seeded examples once the user adds their first real task.
+    state.list = state.list.filter(function(x){ return !x.example; });
+
+    // Categoría + Entregable (solo Front End) se guardan como metadatos internos;
+    // no forman parte del nombre generado.
+    var isFE = role.slug === "fe";
+    var category = isFE ? els.categorySelect.value : null;
+    var ent = isFE ? currentEntregable() : null;
+
+    state.list.unshift({
+      id: "t" + Date.now() + Math.random().toString(36).slice(2,7),
+      roleName: role.name,
+      roleSlug: role.slug,
+      deliverable: deliverable,
+      taskText: taskText,
+      design: !!(task && task.design),
+      category: category,
+      entregable: ent ? ent.name : null,
+      example: false
+    });
+    persist();
+    renderList();
+
+    // Keep entregable + rol (misma campaña suele tener varias tareas); reset solo la tarea.
+    els.taskType.value = "";
+    els.taskText.value = "";
+    hideExtraFields();
+    updatePreview();
+    els.taskType.focus();
+  }
+
+  var clearArmed = false;
+  function onClearClick(){
+    if (!clearArmed){
+      clearArmed = true;
+      els.clearBtn.textContent = "¿Seguro? Sí, vaciar";
+      setTimeout(function(){
+        if (clearArmed){ clearArmed = false; els.clearBtn.textContent = "Vaciar lista"; }
+      }, 3000);
+      return;
+    }
+    clearArmed = false;
+    els.clearBtn.textContent = "Vaciar lista";
+    state.list = [];
+    persist();
+    renderList();
+  }
+
+  function copyAll(){
+    var real = state.list.filter(function(x){ return !x.example; });
+    if (!real.length) return;
+    var text = real.map(function(x){ return x.deliverable + ": " + x.taskText; }).reverse().join("\n");
+    copyText(text, function(ok){
+      var original = "Copiar todo";
+      els.copyAllBtn.textContent = ok ? "✓ Copiado" : "Error";
+      setTimeout(function(){ els.copyAllBtn.textContent = original; }, 1400);
+    });
+  }
+
+  function resetForm(){
+    els.deliverable.value = "";
+    els.hasDesign.checked = false;
+    els.role.value = "";
+    els.categorySelect.selectedIndex = 0;
+    updateFrontEndFieldsVisibility();
+    populateEntregableSelect();
+    populateTaskSelect(); // limpia taskText, oculta campos extra y actualiza la vista previa
+    els.deliverable.focus();
+  }
+
+  function onRoleChange(){
+    updateFrontEndFieldsVisibility();
+    populateEntregableSelect();
+    populateTaskSelect();
+  }
+  function onCategoryChange(){
+    updateFrontEndFieldsVisibility();
+    populateEntregableSelect();
+    populateTaskSelect();
+  }
+  function onEntregableChange(){
+    populateTaskSelect();
+  }
+
+  function bindEvents(){
+    els.role.addEventListener("change", onRoleChange);
+    els.categorySelect.addEventListener("change", onCategoryChange);
+    els.entregableSelect.addEventListener("change", onEntregableChange);
+    els.hasDesign.addEventListener("change", populateTaskSelect);
+    els.taskType.addEventListener("change", onTaskTypeChange);
+    els.countInput.addEventListener("input", onExtraFieldChange);
+    els.tierSelect.addEventListener("change", onExtraFieldChange);
+    els.assetInput.addEventListener("input", onExtraFieldChange);
+    els.taskText.addEventListener("input", updatePreview);
+    els.deliverable.addEventListener("input", updatePreview);
+    els.copyPreviewBtn.addEventListener("click", function(){
+      if (els.copyPreviewBtn.disabled) return;
+      var label = document.getElementById("copyPreviewLabel");
+      copyText(fullName(), function(ok){
+        label.textContent = ok ? "Copiado" : "Error";
+        setTimeout(function(){ label.textContent = "Copiar"; }, 1400);
+      });
+    });
+    els.form.addEventListener("submit", function(e){ e.preventDefault(); addEntry(); });
+    els.copyAllBtn.addEventListener("click", copyAll);
+    els.clearBtn.addEventListener("click", onClearClick);
+    els.resetBtn.addEventListener("click", resetForm);
+  }
+
+  function init(){
+    populateRoleSelect();
+    updateFrontEndFieldsVisibility();
+    populateEntregableSelect();
+    populateTaskSelect();
+    loadState();
+    renderList();
+    bindEvents();
+    updatePreview();
+  }
+
+  init();
+})();
+</script>
+
+</body></html>
